@@ -1,0 +1,192 @@
+1️⃣ Existing Views – Suggested Improvements
+Endpoint	Suggestions / Improvements
+fetch_responses/	- Async execution (asyncio + httpx) for multiple requests.
+- Cache repeated API results.
+- Structured JSON response: {api_name: data, status, time_taken}.
+- Error handling per API to avoid breaking the response.
+- Logging per request for debugging.
+login/	- Enforce single device login.
+- Return JWT or token with expiry.
+- Optional 2FA / OTP.
+- Rate-limiting to prevent brute-force attacks.
+active/	- Show currently logged-in users.
+- Include last activity timestamp.
+- Optionally filter by type (customer/shopkeeper).
+logout/	- Invalidate token/session immediately.
+- Record logout timestamp.
+- Optionally provide “logout from all devices”.
+customers/create/	- Validate email & username uniqueness.
+- Hash passwords securely (PBKDF2 / bcrypt).
+- Optionally send welcome email or OTP verification.
+shopkeepers/create/	- Validate shop details: shop name, phone, category.
+- Optional manual approval to prevent spam.
+- Default rating & verified status logic.
+products/search/	- Full-text search & icontains.
+- Filters: category, price range, rating, stock.
+- Pagination & optional suggestions (autocomplete).
+products/create/	- Validate unique product name per shop.
+- Multiple images support.
+- Optional variants (size, color).
+my_products/	- Show products for logged-in shopkeeper.
+- Include stock, total sales, rating.
+- Pagination & sorting.
+products/expensive/	- Sort descending by price.
+- Optional category filter.
+- Include price history if tracked.
+products/low-stock/	- Show products below stock threshold.
+- Optionally include reorder suggestions.
+products/top-selling/	- Sort by total sales or revenue.
+- Optionally filter by timeframe (week/month).
+orders/create/	- Check stock before placing order.
+- Deduct stock atomically.
+- Return summary (items, quantity, total cost).
+- Optional: multi-item cart support.
+my_orders/	- Return all customer orders.
+- Include status: pending, delivered, canceled.
+- Pagination support.
+orders/today/	- Orders placed today.
+- Include summary metrics: total orders, revenue.
+orders/recent/	- Last N orders, sorted by date.
+- Optional filter by status.
+2️⃣ Suggested New Views / Features
+Customer-side Features
+Feature	Suggested Endpoints	Notes
+Wishlist	wishlist/add/, wishlist/remove/, wishlist/	Save products for later; prevent duplicates using unique_together.
+Cart Management	cart/add/, cart/remove/, cart/, cart/checkout/	Support multiple products, discounts, tax calculation.
+Product Recommendations	products/recommended/	Based on previous orders, ratings, browsing history.
+Order Tracking	orders/track/<order_id>/	Real-time order status updates.
+Customer Reviews & Ratings	products/<int:id>/reviews/	POST/GET reviews; aggregate product ratings.
+Shopkeeper-side Features
+Feature	Suggested Endpoints	Notes
+Sales Dashboard	dashboard/sales/	Metrics: revenue, monthly sales, top products.
+Inventory Management	products/restock/	Alerts for low stock; update stock.
+Promotions / Discounts	products/discounts/	Apply discounts to products or categories.
+Order Management	orders/pending/, orders/completed/	Manage incoming orders; mark shipped/canceled.
+Global / Optional Features
+Feature	Endpoints	Notes
+Search Auto-suggestions	products/suggestions/	Popular searches, category suggestions.
+Analytics	analytics/	Dashboard per customer/shopkeeper; trending products, sales per region.
+Notifications	notifications/	Stock updates, order status changes; read/unread tracking.
+3️⃣ Suggested URLs Structure
+# Wishlist
+path('wishlist/add/', views.add_to_wishlist, name='add_to_wishlist'),
+path('wishlist/remove/', views.remove_from_wishlist, name='remove_from_wishlist'),
+path('wishlist/', views.list_wishlist, name='list_wishlist'),
+
+# Cart
+path('cart/add/', views.add_to_cart, name='add_to_cart'),
+path('cart/remove/', views.remove_from_cart, name='remove_from_cart'),
+path('cart/', views.view_cart, name='view_cart'),
+path('cart/checkout/', views.checkout_cart, name='checkout_cart'),
+
+# Product Recommendations
+path('products/recommended/', views.recommended_products, name='recommended_products'),
+
+# Product Reviews
+path('products/<int:id>/reviews/', views.product_reviews, name='product_reviews'),
+
+# Order Tracking
+path('orders/track/<int:id>/', views.track_order, name='track_order'),
+
+# Shopkeeper Dashboard
+path('dashboard/sales/', views.sales_dashboard, name='sales_dashboard'),
+path('analytics/', views.analytics_view, name='analytics'),
+
+# Notifications
+path('notifications/', views.notifications_list, name='notifications'),
+path('notifications/mark-read/<int:id>/', views.mark_notification_read, name='mark_notification_read'),
+
+# Promotions / Discounts
+path('products/discounts/', views.manage_discounts, name='manage_discounts'),
+
+# Inventory / Restock
+path('products/restock/', views.restock_products, name='restock_products'),
+
+4️⃣ Additional Enhancements / Unique Ideas
+
+Gamification for customers: loyalty points for purchases, referrals, or reviews.
+
+Dynamic pricing / flash deals: temporary discounts, tracked via Promotions model.
+
+Seller verification badges: is_verified for shopkeepers.
+
+Stock alerts: notify customers when low-stock products are restocked.
+
+Cart persistence: maintain cart even after logout using CustomSession.
+
+Review analytics: show top-rated products, most-reviewed items.
+
+
+
+--------------------------------I new urls----------------------------------
+
+Ah! I see exactly what you mean — in the real world, customers/shopkeepers don’t manually type numeric IDs in URLs. Instead, we usually use slugs, UUIDs, or natural keys like order numbers, product codes, or usernames.
+
+Here’s how your URLs can be made more realistic and user-friendly:
+
+1️⃣ Wishlist
+
+No change needed — it’s tied to the logged-in customer, so IDs are implicit in session.
+
+path('wishlist/add/', views.add_to_wishlist, name='add_to_wishlist'),
+path('wishlist/remove/', views.remove_from_wishlist, name='remove_from_wishlist'),
+path('wishlist/', views.list_wishlist, name='list_wishlist'),
+
+2️⃣ Cart
+
+Also session-based — no IDs in URLs required:
+
+path('cart/add/', views.add_to_cart, name='add_to_cart'),
+path('cart/remove/', views.remove_from_cart, name='remove_from_cart'),
+path('cart/', views.view_cart, name='view_cart'),
+path('cart/checkout/', views.checkout_cart, name='checkout_cart'),
+
+3️⃣ Product Recommendations
+
+No IDs needed; recommendation list is general or personalized by session:
+
+path('products/recommended/', views.recommended_products, name='recommended_products'),
+
+4️⃣ Product Reviews
+
+Instead of <int:id>, use product slug or code:
+
+path('products/<slug:slug>/reviews/', views.product_reviews, name='product_reviews'),
+
+
+slug can be generated from product name or a unique code.
+
+Example: /products/smartphone-x100/reviews/ instead of /products/12/reviews/.
+
+5️⃣ Order Tracking
+
+Use order number / transaction ID / UUID instead of integer ID:
+
+path('orders/track/<str:order_number>/', views.track_order, name='track_order'),
+
+
+order_number could be like ORD20251010XYZ or a UUID.
+
+Example: /orders/track/ORD20251010XYZ/ instead of /orders/track/123/.
+
+6️⃣ Notifications
+
+Mark read without exposing numeric ID — could use UUID stored per notification:
+
+path('notifications/', views.notifications_list, name='notifications'),
+path('notifications/mark-read/<uuid:notification_id>/', views.mark_notification_read, name='mark_notification_read'),
+
+7️⃣ Promotions / Discounts
+
+Session/shopkeeper based, no IDs in URL:
+
+path('products/discounts/', views.manage_discounts, name='manage_discounts'),
+
+8️⃣ Inventory / Restock
+
+Also session/shopkeeper based:
+
+path('products/restock/', views.restock_products, name='restock_products'),
+
+
+
